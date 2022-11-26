@@ -14,7 +14,7 @@ class OurClient:
         response, ip_add = self.sock.recvfrom(1024)
         return self.deserialize(response)
     
-    def join(self, host, port): # TODO this should be good idfk
+    def join(self, host, port):
         self.host = host
         self.port = port
         self.sock.connect((self.host, self.port))

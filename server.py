@@ -1,18 +1,16 @@
 import json
 import socket
-import threading
 
 class OurServer:
     def __init__(self, host=socket.gethostname(), port=12345):
-        self.users = []
-        self.addresses = []
+        self.users = {} # Dictionary storing username:ip_address pairs
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP Datagram
         self.sock.bind((host, port))
 
     def wait(self, buffer=1024): # Listen for client requests
         req, ip_add = self.sock.recvfrom(buffer)
         req = self.deserialize(req)
-        print(f'Client {ip_add} sent: {req}') # Proof print
+        print(f'Client {ip_add} sent: {req}') # Debug print, can remove after
         return req, ip_add
 
     def respond(self, message, ip_add): # Send response to client
@@ -30,19 +28,27 @@ class OurServer:
 
     def register(self, username): # Registers a user
         if username not in self.users:
-            self.users.append(username)
+            self.users.update({username: ip_add})
+            print('Users:', self.users) # Debug print, remove after
             return f'Welcome {username}!'
         else:
             return 'Error: Registration failed. Handle or alias already exists.'
 
     def msg(self, sender, recipient, message):
         if message:
-            if recipient in self.users:
-                return f'[From {sender}]: {message}'
+            rcvr = self.users.get(recipient)
+            if rcvr:
+                send_it = f'[From {sender}]: {message}'
+                self.sock.sendto(self.serialize(send_it), rcvr)
+                return f'[To {recipient}]: {message}'
             else:
                 return 'Error: Handle or alias not found.'
 
     def msgall(self, sender, message):
+        for rcvr in self.users:
+            if rcvr != sender:
+                send_it = f'{sender}: {message}'
+                self.sock.sendto(self.serialize(send_it), self.users.get(rcvr))
         return f'{sender}: {message}'
 
     def parse_cmd(self, req):
@@ -70,7 +76,7 @@ class OurServer:
 
 if __name__ == '__main__':
     server = OurServer()
-    print('Server running at {}:{}'.format(server.sock.getsockname()[0], server.sock.getsockname()[1]))
+    print('Server running at {}:{}'.format(server.sock.getsockname()[0], server.sock.getsockname()[1])) # I want this here, off my case
     while True:
         msg, ip_add = server.wait()
         server.respond(msg, ip_add)
