@@ -14,11 +14,12 @@ class OurClient:
         response, ip_add = self.sock.recvfrom(1024)
         return self.deserialize(response)
     
-    def join(self, host, port): # TODO
+    def join(self, host, port): # TODO this should be good idfk
         self.host = host
         self.port = port
+        self.sock.connect((self.host, self.port))
 
-    def leave(self): # TODO
+    def leave(self): # TODO this doesn't disconnect the client
         self.sock.close()
     
     def register(self, handle):
@@ -59,10 +60,10 @@ class OurClient:
             if len(args) != 1: print(params_err)
             else: 
                 print(self.register(args[0]))
-        elif cmd == '/all': #
-            pass
+        elif cmd == '/all':
+            print(self.msg_all(self.handle, ' '.join(args)))
         elif cmd == '/msg': #TODO
-            pass
+            print(self.msg(self.handle, args[0], ' '.join(args[1:])))
         else:
             print('Error: Command not found.')
 
@@ -76,15 +77,19 @@ if __name__ == '__main__':
             cmd = input('Enter a command: ')
             if cmd == '/?':
                 print(COMMANDS)
-            elif client == None and not cmd.startswith('/join'):
+            elif not serv and not cmd.startswith('/join'):
                 print('Error: You must join a server first.')
             elif cmd.startswith('/join') and client == None:
                 client = OurClient()
                 client.read_cmd(cmd)
+                if client: serv = True
             elif client:
-                if client.handle == None and not cmd.startswith('/register'):
+                if not acc and not cmd.startswith('/register'):
                     print('Error: You must register a handle first.')
                 else:
                     client.read_cmd(cmd)
+                    if client.handle: acc = True
         except socket.error as err:
             print(f'Error: {err}')
+        except KeyboardInterrupt:
+            socket.close()

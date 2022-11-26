@@ -1,5 +1,6 @@
 import json
 import socket
+import threading
 
 class OurServer:
     def __init__(self, host=socket.gethostname(), port=12345):
@@ -8,7 +9,7 @@ class OurServer:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP Datagram
         self.sock.bind((host, port))
 
-    def listen(self, buffer=1024): # Listen for client requests
+    def wait(self, buffer=1024): # Listen for client requests
         req, ip_add = self.sock.recvfrom(buffer)
         req = self.deserialize(req)
         print(f'Client {ip_add} sent: {req}') # Proof print
@@ -20,7 +21,7 @@ class OurServer:
 
     def join(self):
         # TODO connect the ip of the client 
-
+        
         return 'Connection to the Message Board Server is successful.'
     
     def leave(self):
@@ -69,7 +70,7 @@ class OurServer:
 
 if __name__ == '__main__':
     server = OurServer()
-    print('Server started')
+    print('Server running at {}:{}'.format(server.sock.getsockname()[0], server.sock.getsockname()[1]))
     while True:
-        msg, ip_add = server.listen()
+        msg, ip_add = server.wait()
         server.respond(msg, ip_add)
