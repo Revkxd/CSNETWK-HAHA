@@ -49,17 +49,30 @@ class OurClient:
             if args: print(params_err)
             else: print('\n'.join(COMMANDS))
         elif cmd == '/join':
-            if len(args) > 2: print(params_err)
+            if len(args) != 2: 
+                print(params_err)
+                return False
             else:
-                if args: self.join(args[0], int(args[1]))
-                print(self.request(self.serialize({'command': 'join'})))
+                self.join(args[0], int(args[1]))
+                ans = self.request(self.serialize({'command': 'join'}))
+                print(ans)
+                return True if ans == 'Connection to the Message Board Server is successful.' else False
         elif cmd == '/leave':
-            if args: print(params_err)
-            else: print(self.request(self.serialize({'command': 'leave'})))
-        elif cmd == '/register':
-            if len(args) != 1: print(params_err)
+            if args: 
+                print(params_err)
+                return False
             else: 
-                print(self.register(args[0]))
+                ans = self.request(self.serialize({'command': 'leave'}))
+                print(ans)
+                return True if ans == 'Connection closed. Thank you!' else False
+        elif cmd == '/register':
+            if len(args) != 1: 
+                print(params_err)
+                return False
+            else: 
+                ans = self.register(args[0])
+                print(ans)
+                return True if ans.strip('\"') == f'Welcome {args[0]}!' else False
         elif cmd == '/all':
             print(self.msg_all(self.handle, ' '.join(args)))
         elif cmd == '/msg': #TODO
@@ -79,10 +92,15 @@ if __name__ == '__main__':
                 print(COMMANDS)
             elif not serv and not cmd.startswith('/join'):
                 print('Error: You must join a server first.')
-            elif cmd.startswith('/join') and client == None:
+            elif cmd.startswith('/join') and not serv:
                 client = OurClient()
-                client.read_cmd(cmd)
-                if client: serv = True
+                yes = client.read_cmd(cmd)
+                if yes: 
+                    serv = True
+            elif cmd.startswith('/leave') and serv and acc:
+                yes = client.read_cmd(cmd)
+                if yes: 
+                    serv = False
             elif client:
                 if not acc and not cmd.startswith('/register'):
                     print('Error: You must register a handle first.')
