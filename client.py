@@ -1,12 +1,13 @@
 import json
 import socket
+import threading
+from tkinter import *
 
 COMMANDS = '\n'.join(['/join <server_ip_add> <port>', '/leave', '/register <handle>', '/all <message>', '/msg <handle> <message>'])
 
 class OurClient:
     def __init__(self, host=socket.gethostname(), port=12345):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP Datagram
-        self.join(host, port)
         self.handle = None
     
     def request(self, message):
@@ -109,5 +110,3 @@ if __name__ == '__main__':
                     if client.handle: acc = True
         except socket.error as err:
             print(f'Error: {err}')
-        except KeyboardInterrupt:
-            socket.close()
