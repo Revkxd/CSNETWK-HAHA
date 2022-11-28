@@ -9,6 +9,7 @@ class OurClient:
     def __init__(self, host=socket.gethostname(), port=12345):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP Datagram
         self.handle = None
+        self.isConnected = False #Cheap Fix
     
     def request(self, message):
         self.sock.sendto(message, (self.host, self.port))
@@ -53,11 +54,14 @@ class OurClient:
             if len(args) != 2: 
                 print(params_err)
                 return False
-            else:
+            elif self.isConnected==True: #Cheap Fix
                 self.join(args[0], int(args[1]))
                 ans = self.request(self.serialize({'command': 'join'}))
                 print(ans.get('message'))
                 return True if ans.get('message') == 'Connection to the Message Board Server is successful.' else False
+            else: #Cheap Fix
+                print("You're already connected")
+                return False
         elif cmd == '/leave':
             if args: 
                 print(params_err)
@@ -102,7 +106,9 @@ if __name__ == '__main__':
                 yes = client.read_cmd(cmd)
                 if yes: 
                     serv = False
+                    client.isConnected=False #Cheap Fix
             elif client:
+                client.isConnected=True
                 if not acc and not cmd.startswith('/register'):
                     print('Error: You must register a handle first.')
                 else:
