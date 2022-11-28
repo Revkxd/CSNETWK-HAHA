@@ -25,15 +25,15 @@ class OurClient:
     
     def register(self, handle):
         resp = self.request(self.serialize({'command': 'register', 'handle': handle}))
-        if resp.strip('\"') == f'Welcome {handle}!':
+        if resp.get('message') == f'Welcome {handle}!':
             self.handle = handle
         return resp
     
     def msg_all(self, sender, message):
-        return self.request(self.serialize({'command': 'all', 'sender': sender, 'message': message}))
+        return self.request(self.serialize({'command': 'all', 'sender': sender, 'message': message})).get('message')
     
     def msg(self, sender, recipient, message):
-        return self.request(self.serialize({'command': 'msg', 'sender': sender, 'recipient': recipient, 'message': message}))
+        return self.request(self.serialize({'command': 'msg', 'sender': sender, 'recipient': recipient, 'message': message})).get('message')
 
     def serialize(self, dict):
         val = bytes(json.dumps(dict), 'utf-8')
@@ -56,27 +56,27 @@ class OurClient:
             else:
                 self.join(args[0], int(args[1]))
                 ans = self.request(self.serialize({'command': 'join'}))
-                print(ans)
-                return True if ans == 'Connection to the Message Board Server is successful.' else False
+                print(ans.get('message'))
+                return True if ans.get('message') == 'Connection to the Message Board Server is successful.' else False
         elif cmd == '/leave':
             if args: 
                 print(params_err)
                 return False
             else: 
                 ans = self.request(self.serialize({'command': 'leave'}))
-                print(ans)
-                return True if ans == 'Connection closed. Thank you!' else False
+                print(ans.get('message'))
+                return True if ans.get('message') == 'Connection closed. Thank you!' else False
         elif cmd == '/register':
             if len(args) != 1: 
                 print(params_err)
                 return False
             else: 
                 ans = self.register(args[0])
-                print(ans)
-                return True if ans.strip('\"') == f'Welcome {args[0]}!' else False
+                print(ans.get('message'))
+                return True if ans.get('message') == f'Welcome {args[0]}!' else False
         elif cmd == '/all':
             print(self.msg_all(self.handle, ' '.join(args)))
-        elif cmd == '/msg': #TODO
+        elif cmd == '/msg':
             print(self.msg(self.handle, args[0], ' '.join(args[1:])))
         else:
             print('Error: Command not found.')

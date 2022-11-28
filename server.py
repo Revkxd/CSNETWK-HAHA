@@ -19,20 +19,21 @@ class OurServer:
 
     def join(self):
         # TODO connect the ip of the client 
-        
-        return 'Connection to the Message Board Server is successful.'
+        message = {'response':'success', 'message':'Connection to the Message Board Server is successful.'}
+        return message
     
     def leave(self):
         # TODO remove the ip of the client
-        return 'Connection closed. Thank you!'
+        message = {'response':'success', 'message':'Connection closed. Thank you!'}
+        return message
 
     def register(self, username): # Registers a user
         if username not in self.users:
             self.users.update({username: ip_add})
             print('Users:', self.users) # Debug print, remove after
-            return f'Welcome {username}!'
+            return {'response':'success', 'message': f'Welcome {username}!'}
         else:
-            return 'Error: Registration failed. Handle or alias already exists.'
+            return {'response':'error', 'message':'Error: Registration failed. Handle or alias already exists.'}
 
     def msg(self, sender, recipient, message):
         if message:
@@ -40,16 +41,16 @@ class OurServer:
             if rcvr:
                 send_it = f'[From {sender}]: {message}'
                 self.sock.sendto(self.serialize(send_it), rcvr)
-                return f'[To {recipient}]: {message}'
+                return {'response': 'success', 'message': f'[To {recipient}]: {message}'}
             else:
-                return 'Error: Handle or alias not found.'
+                return {'response': 'error', 'message':'Error: Handle or alias not found.'}
 
     def msgall(self, sender, message):
+        send_it = f'{sender}: {message}'
         for rcvr in self.users:
             if rcvr != sender:
-                send_it = f'{sender}: {message}'
                 self.sock.sendto(self.serialize(send_it), self.users.get(rcvr))
-        return f'{sender}: {message}'
+        return {'response': 'success', 'message': send_it}
 
     def parse_cmd(self, req):
         cmd = req.get('command')
