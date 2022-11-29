@@ -3,6 +3,7 @@ import socket
 
 class OurServer:
     def __init__(self, host=socket.gethostname(), port=12345):
+        self.addresses = [] # Stores IP Address of connected clients
         self.users = {} # Dictionary storing username:ip_address pairs
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP Datagram
         self.sock.bind((host, port))
@@ -18,25 +19,28 @@ class OurServer:
         self.sock.sendto(resp, ip_add)
 
     def join(self):
-        # TODO connect the ip of the client 
+        self.addresses.append(ip_add)
+        print('Addresses after join:', self.addresses) # Debug print, remove after
         message = {'response':'success', 'message':'Connection to the Message Board Server is successful.'}
         return message
     
     def leave(self):
-        # TODO remove the ip of the client
         user = None
         for key, value in self.users.items():
             if value == ip_add:
                 user = key
-        if user: self.users.pop(user)
+        if user: 
+            self.users.pop(user)
+        self.addresses.remove(ip_add)
         print('Users after leave:', self.users) # Debug print, remove after
+        print('Addresses after leave:', self.addresses) # Debug print, remove after
         message = {'response':'success', 'message':'Connection closed. Thank you!'}
         return message
 
-    def register(self, username): # Registers a user
+    def register(self, username):
         if username not in self.users:
             self.users.update({username: ip_add})
-            print('Users:', self.users) # Debug print, remove after
+            print('Users after register:', self.users) # Debug print, remove after
             return {'response':'success', 'message': f'Welcome {username}!'}
         else:
             return {'response':'error', 'message':'Error: Registration failed. Handle or alias already exists.'}
@@ -75,7 +79,7 @@ class OurServer:
         elif cmd == 'all':
             return self.msgall(req.get('sender'), req.get('message'))
         else:
-            return 'Error: Command not found.'
+            return {'response':'error', 'message':'Error: Command not found.'}
 
     def serialize(self, dict): # Turns JSON into bytes
         val = bytes(json.dumps(dict), 'utf-8')

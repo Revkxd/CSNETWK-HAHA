@@ -18,6 +18,7 @@ class OurClient:
     def join(self, host, port):
         self.host = host
         self.port = port
+        self.sock.settimeout(3)
         self.sock.connect((self.host, self.port))
 
     def leave(self):
@@ -95,13 +96,18 @@ if __name__ == '__main__':
             if cmd == '/?':
                 print(COMMANDS)
             elif not serv and not cmd.startswith('/join'):
-                print('Error: You must join a server first.')
+                print('Error: Disconnection failed. Please connect to the server first.')
             elif cmd.startswith('/join') and not serv:
-                client = OurClient()
-                yes = client.read_cmd(cmd)
-                if yes: 
-                    serv = True
-            elif cmd.startswith('/leave') and serv and acc:
+                try:
+                    _, *args = cmd.split(' ')
+                    client = OurClient(args[0], int(args[1]))
+                    yes = client.read_cmd(cmd)
+                    if yes: 
+                        serv = True
+                except socket.error:
+                    client = None
+                    print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
+            elif cmd.startswith('/leave') and serv:
                 yes = client.read_cmd(cmd)
                 if yes: 
                     serv = False
