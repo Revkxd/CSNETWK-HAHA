@@ -20,7 +20,7 @@ class OurClient:
         self.port = port
         self.sock.connect((self.host, self.port))
 
-    def leave(self): # TODO this doesn't disconnect the client
+    def leave(self):
         self.sock.close()
     
     def register(self, handle):
@@ -32,8 +32,8 @@ class OurClient:
     def msg_all(self, sender, message):
         return self.request(self.serialize({'command': 'all', 'sender': sender, 'message': message})).get('message')
     
-    def msg(self, sender, recipient, message):
-        return self.request(self.serialize({'command': 'msg', 'sender': sender, 'recipient': recipient, 'message': message})).get('message')
+    def msg(self, recipient, message):
+        return self.request(self.serialize({'command': 'msg', 'recipient': recipient, 'message': message})).get('message')
 
     def serialize(self, dict):
         val = bytes(json.dumps(dict), 'utf-8')
@@ -80,7 +80,7 @@ class OurClient:
         elif cmd == '/all':
             print(self.msg_all(self.handle, ' '.join(args)))
         elif cmd == '/msg':
-            print(self.msg(self.handle, args[0], ' '.join(args[1:])))
+            print(self.msg(args[0], ' '.join(args[1:])))
         else:
             print('Error: Command not found.')
 
@@ -101,11 +101,11 @@ if __name__ == '__main__':
                 yes = client.read_cmd(cmd)
                 if yes: 
                     serv = True
-                    client.handle= None
             elif cmd.startswith('/leave') and serv and acc:
                 yes = client.read_cmd(cmd)
                 if yes: 
                     serv = False
+                    client.handle= None
             elif client:
                 if not acc and not cmd.startswith('/register'):
                     print('Error: You must register a handle first.')

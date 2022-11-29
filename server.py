@@ -14,7 +14,7 @@ class OurServer:
         return req, ip_add
 
     def respond(self, message, ip_add): # Send response to client
-        resp = self.serialize(self.parse_cmd(message))
+        resp = self.serialize(self.parse_cmd(message, ip_add))
         self.sock.sendto(resp, ip_add)
 
     def join(self):
@@ -24,6 +24,12 @@ class OurServer:
     
     def leave(self):
         # TODO remove the ip of the client
+        user = None
+        for key, value in self.users.items():
+            if value == ip_add:
+                user = key
+        if user: self.users.pop(user)
+        print('Users after leave:', self.users) # Debug print, remove after
         message = {'response':'success', 'message':'Connection closed. Thank you!'}
         return message
 
@@ -36,14 +42,13 @@ class OurServer:
             return {'response':'error', 'message':'Error: Registration failed. Handle or alias already exists.'}
 
     def msg(self, sender, recipient, message):
-        if message:
-            rcvr = self.users.get(recipient)
-            if rcvr:
-                send_it = f'[From {sender}]: {message}'
-                self.sock.sendto(self.serialize(send_it), rcvr)
-                return {'response': 'success', 'message': f'[To {recipient}]: {message}'}
-            else:
-                return {'response': 'error', 'message':'Error: Handle or alias not found.'}
+        rcvr = self.users.get(recipient)
+        if rcvr:
+            send_it = f'[From {sender}]: {message}'
+            self.sock.sendto(self.serialize(send_it), rcvr)
+            return {'response': 'success', 'message': f'[To {recipient}]: {message}'}
+        else:
+            return {'response': 'error', 'message':'Error: Handle or alias not found.'}
 
     def msgall(self, sender, message):
         send_it = f'{sender}: {message}'
@@ -52,7 +57,7 @@ class OurServer:
                 self.sock.sendto(self.serialize(send_it), self.users.get(rcvr))
         return {'response': 'success', 'message': send_it}
 
-    def parse_cmd(self, req):
+    def parse_cmd(self, req, ip_add):
         cmd = req.get('command')
         if cmd == 'join':
             return self.join()
@@ -61,7 +66,12 @@ class OurServer:
         elif cmd == 'register':
             return self.register(req.get('handle'))
         elif cmd == 'msg':
-            return self.msg(req.get('sender'), req.get('recipient'), req.get('message'))
+            sender = None
+            for key, value in self.users.items():
+                if value == ip_add:
+                    sender = key
+                    break
+            return self.msg(sender, req.get('recipient'), req.get('message'))
         elif cmd == 'all':
             return self.msgall(req.get('sender'), req.get('message'))
         else:
