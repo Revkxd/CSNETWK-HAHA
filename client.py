@@ -101,6 +101,7 @@ if __name__ == '__main__':
                 yes = client.read_cmd(cmd)
                 if yes: 
                     serv = True
+                    client.handle= None
             elif cmd.startswith('/leave') and serv and acc:
                 yes = client.read_cmd(cmd)
                 if yes: 
