@@ -6,7 +6,7 @@ from tkinter import *
 COMMANDS = '\n'.join(['/join <server_ip_add> <port>', '/leave', '/register <handle>', '/all <message>', '/msg <handle> <message>'])
 
 class OurClient:
-    def __init__(self, host=socket.gethostname(), port=12345):
+    def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP Datagram
         self.handle = None
     
@@ -15,7 +15,7 @@ class OurClient:
         response, ip_add = self.sock.recvfrom(1024)
         return self.deserialize(response)
     
-    def join(self, host, port):
+    def join(self, host=socket.gethostname(), port=12345):
         self.host = host
         self.port = port
         self.sock.settimeout(3)
@@ -54,7 +54,8 @@ class OurClient:
             if len(args) != 2: 
                 print(params_err)
                 return False
-            elif not self.handle: 
+            elif not self.handle:
+                if args[1] == ' ': args[1] = '0'
                 self.join(args[0], int(args[1]))
                 ans = self.request(self.serialize({'command': 'join'}))
                 print(ans.get('message'))
@@ -88,7 +89,7 @@ class OurClient:
 if __name__ == '__main__':
     serv, acc = False, False
     print('Use /? for a list of commands.')
-    client = None
+    client = OurClient()
 
     while True:
         try:
@@ -99,8 +100,6 @@ if __name__ == '__main__':
                 print('Error: Disconnection failed. Please connect to the server first.')
             elif cmd.startswith('/join') and not serv:
                 try:
-                    _, *args = cmd.split(' ')
-                    client = OurClient(args[0], int(args[1]))
                     yes = client.read_cmd(cmd)
                     if yes: 
                         serv = True

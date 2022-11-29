@@ -48,14 +48,14 @@ class OurServer:
     def msg(self, sender, recipient, message):
         rcvr = self.users.get(recipient)
         if rcvr:
-            send_it = f'[From {sender}]: {message}'
+            send_it = {'response': 'message', 'message': f'[From {sender}]: {message}'}
             self.sock.sendto(self.serialize(send_it), rcvr)
             return {'response': 'success', 'message': f'[To {recipient}]: {message}'}
         else:
             return {'response': 'error', 'message':'Error: Handle or alias not found.'}
 
     def msgall(self, sender, message):
-        send_it = f'{sender}: {message}'
+        send_it = {'response': 'message', 'message': f'{sender}: {message}'}
         for rcvr in self.users:
             if rcvr != sender:
                 self.sock.sendto(self.serialize(send_it), self.users.get(rcvr))
