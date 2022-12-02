@@ -10,6 +10,11 @@ class OurClient:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP Datagram
         self.handle = None
     
+    def recv_msg(self):
+        msg, _ = self.sock.recvfrom(1024)
+        msg = self.deserialize(msg)
+        print(msg)
+    
     def request(self, message):
         self.sock.sendto(message, (self.host, self.port))
         response, ip_add = self.sock.recvfrom(1024)
@@ -98,6 +103,16 @@ class GUI:
         self.handle = None
         self.create_widgets()
         self.root.mainloop()
+
+    def create_widgets(self):
+        self.label = Label(self.root, text='Use /? to see all commands', bg='white')
+        self.label.pack()
+        self.msg_box = Text(self.root, bg='white', state='disabled')
+        self.msg_box.pack()
+        self.entry = Entry(self.root, bg='white')
+        self.entry.pack()
+        self.entry.bind('<Return>', self.submit)
+        self.root.protocol('WM_DELETE_WINDOW', self.exitWindow)
     
     def submit(self):
         pass
@@ -111,6 +126,12 @@ if __name__ == '__main__':
     serv, acc = False, False
     print('Use /? for a list of commands.')
     client = OurClient()
+    frontend = GUI()
+    t1 = threading.Thread(target=client.recv_msg)
+    t1.start()
+    t2 = threading.Thread(target=frontend)
+    t2.start()
+
 
     while True:
         try:
