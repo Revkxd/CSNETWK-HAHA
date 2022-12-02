@@ -86,6 +86,27 @@ class OurClient:
         else:
             print('Error: Command not found.')
 
+class GUI:
+    def __init__(self) -> None:
+        self.root = Tk()
+        self.root.title('Message Board Client')
+        self.root.geometry('500x500')
+        self.root.resizable(False, False)
+        self.root.configure(bg='white')
+        self.client = OurClient()
+        self.connected = False
+        self.handle = None
+        self.create_widgets()
+        self.root.mainloop()
+    
+    def submit(self):
+        pass
+
+    def exitWindow(self):
+        if self.connected:
+            self.client.leave()
+        self.root.destroy()
+
 if __name__ == '__main__':
     serv, acc = False, False
     print('Use /? for a list of commands.')
