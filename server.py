@@ -19,7 +19,8 @@ class OurServer:
         self.sock.sendto(resp, ip_add)
 
     def join(self):
-        self.addresses.append(ip_add)
+        if ip_add not in self.addresses:
+            self.addresses.append(ip_add)
         print('Addresses after join:', self.addresses) # Debug print, remove after
         message = {'response':'success', 'message':'Connection to the Message Board Server is successful.'}
         return message
