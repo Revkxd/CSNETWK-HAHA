@@ -23,9 +23,11 @@ class OurClient:
     def recv_msg(self):
         while self.running:
             try:
-                msg, _ = self.sock.recvfrom(1024)
-                msg = self.deserialize(msg)
-                if msg.message.startswith('[From'):
+                msgorig, _ = self.sock.recvfrom(1024)
+                msg = self.deserialize(msgorig)
+                print(msg)
+                print(type(msg))
+                if msg.get('message').startswith('[From'):
                     if self.gui_made:
                         self.text_area.configure(state='normal')
                         self.text_area.insert('end', msg)
@@ -150,7 +152,7 @@ class OurClient:
         elif cmd == '/msg':
             # print(self.msg(args[0], ' '.join(args[1:])))
             self.text_area.configure(state='normal')
-            self.text_area.insert('end', self.msg(args[0], ' '.join(args[1:])).get('message') + '\n')
+            self.text_area.insert('end', self.msg(args[0], ' '.join(args[1:])) + '\n')
             self.text_area.yview('end')
             self.text_area.configure(state='disabled')
         else:
