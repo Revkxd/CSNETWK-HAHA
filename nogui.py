@@ -5,61 +5,46 @@ from tkinter import *
 
 COMMANDS = '\n'.join(['/join <server_ip_add> <port>', '/leave', '/register <handle>', '/all <message>', '/msg <handle> <message>'])
 
-class OurClient:
-    def __init__(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP Datagram
+class Client:
+    def __init__(self) -> None:
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.handle = None
-        self.gui_made = False
-        self.running = True
-        self.serv = False
-        self.acc = False
+        self.host = None
+        self.port = None
 
-        gui_thread = threading.Thread(target=self.gui_loop)
-        recvr_thread = threading.Thread(target=self.recv_msg)
+        # threading.Thread(target=self.gui_loop).start()
 
-        gui_thread.start()
-        recvr_thread.start()
+    def receiver(self):
+        while True:
+            data, addr = self.sock.recvfrom(1024)
+            data = self.deserialize(data)
+            message = data['message']
+            print(message)
 
-    def recv_msg(self):
-        while self.running:
-            try:
-                msgorig, _ = self.sock.recvfrom(1024)
-                msg = self.deserialize(msgorig)
-                print(msg)
-                if self.gui_made:
-                    self.text_area.configure(state='normal')
-                    self.text_area.insert('end', msg.get('message') + '\n')
-                    self.text_area.yview('end')
-                    self.text_area.configure(state='disabled')
-            except socket.error:
-                pass
-
-    def request(self, message):
-        self.sock.sendto(message, (self.host, self.port))
-        response, ip_add = self.sock.recvfrom(1024)
-        return self.deserialize(response)
-    
-    def join(self, host=socket.gethostname(), port=12345):
-        self.host = host
-        self.port = port
-        self.sock.settimeout(3)
-        self.sock.connect((self.host, self.port))
+    def join(self, host, port):
+        try:
+            self.sock.connect((host, port))
+            self.sock.sendto(self.serialize({'command': 'join'}), (host, port))
+            self.host = host
+            self.port = port
+            threading.Thread(target=self.receiver).start() # Start receiver thread to wait for server responses
+        except socket.error as e:
+            print(e)
 
     def leave(self):
+        self.sock.sendto(self.serialize({'command': 'leave'}), (self.host, self.port))
         self.sock.close()
-    
-    def register(self, handle):
-        resp = self.request(self.serialize({'command': 'register', 'handle': handle}))
-        if resp.get('message') == f'Welcome {handle}!':
-            self.handle = handle
-        return resp
-    
-    def msg_all(self, sender, message):
-        return self.request(self.serialize({'command': 'all', 'sender': sender, 'message': message})).get('message')
-    
-    def msg(self, recipient, message):
-        return self.request(self.serialize({'command': 'msg', 'recipient': recipient, 'message': message})).get('message')
 
+    def register(self, handle):
+        self.sock.sendto(self.serialize({'command': 'register', 'handle': handle}), (self.host, self.port))
+        self.handle = handle
+
+    def msg(self, recipient, message):
+        self.sock.sendto(self.serialize({'command': 'msg', 'recipient': recipient, 'message': message}), (self.host, self.port))
+
+    def msg_all(self, message):
+        self.sock.sendto(self.serialize({'command': 'all', 'sender': self.handle, 'message': message}), (self.host, self.port))
+    
     def serialize(self, dict):
         val = bytes(json.dumps(dict), 'utf-8')
         return val
@@ -67,7 +52,7 @@ class OurClient:
     def deserialize(self, data):
         val = json.loads(data.decode('utf-8'))
         return val
-    
+
     def read_cmd(self, command):
         cmd, *args = command.split(' ')
         params_err = 'Error: Command parameters do not match or is not allowed.'
@@ -225,34 +210,36 @@ class OurClient:
         self.win.mainloop()
 
 if __name__ == '__main__':
-    client = OurClient()
-    # serv, acc = False, False
-    # print('Use /? for a list of commands.')
-    # while True:
-    #     try:
-    #         cmd = input('Enter a command: ')
-    #         if cmd == '/?':
-    #             print(COMMANDS)
-    #         elif not serv and not cmd.startswith('/join'):
-    #             print('Error: Disconnection failed. Please connect to the server first.')
-    #         elif cmd.startswith('/join') and not serv:
-    #             try:
-    #                 yes = client.read_cmd(cmd)
-    #                 if yes: 
-    #                     serv = True
-    #             except socket.error:
-    #                 client = None
-    #                 print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
-    #         elif cmd.startswith('/leave') and serv:
-    #             yes = client.read_cmd(cmd)
-    #             if yes: 
-    #                 serv = False
-    #                 client.handle= None
-    #         elif client:
-    #             if not acc and not cmd.startswith('/register'):
-    #                 print('Error: You must register a handle first.')
-    #             else:
-    #                 client.read_cmd(cmd)
-    #                 if client.handle: acc = True
-    #     except socket.error as err:
-    #         print(f'Error: {err}')
+    client = Client()
+    while True:
+        cmd = input()
+        if cmd.startswith('/join'):
+            cmd = cmd.split()
+            if len(cmd) == 3:
+                client.join(cmd[1], int(cmd[2]))
+            else:
+                print('Invalid command. Try again.')
+        elif cmd.startswith('/leave'):
+            client.leave()
+        elif cmd.startswith('/register'):
+            cmd = cmd.split()
+            if len(cmd) == 2:
+                client.register(cmd[1])
+            else:
+                print('Invalid command. Try again.')
+        elif cmd.startswith('/msg'):
+            cmd = cmd.split()
+            if len(cmd) >= 3:
+                client.msg(cmd[1], ' '.join(cmd[2:]))
+            else:
+                print('Invalid command. Try again.')
+        elif cmd.startswith('/all'):
+            cmd = cmd.split()
+            if len(cmd) >= 2:
+                client.msg_all(' '.join(cmd[1:]))
+            else:
+                print('Invalid command. Try again.')
+        elif cmd == '/help':
+            print(COMMANDS)
+        else:
+            print('Invalid command. Try again.')
