@@ -9,10 +9,14 @@ class OurServer:
         self.sock.bind((host, port))
 
     def wait(self, buffer=1024): # Listen for client requests
-        req, ip_add = self.sock.recvfrom(buffer)
-        req = self.deserialize(req)
-        print(f'Client {ip_add} sent: {req}') # Debug print, can remove after
-        return req, ip_add
+        try:
+            req, ip_add = self.sock.recvfrom(buffer)
+            req = self.deserialize(req)
+            print(f'Client {ip_add} sent: {req}') # Debug print, can remove after
+            return req, ip_add
+        except socket.error as err:
+            print('Socket error:', err)
+            return {'command':'FAIL'}, (socket.gethostname, 12345)
 
     def respond(self, message, ip_add): # Send response to client
         resp = self.serialize(self.parse_cmd(message, ip_add))

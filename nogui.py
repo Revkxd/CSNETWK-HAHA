@@ -12,47 +12,39 @@ class Client:
         self.port = None
         self.serv = False
         self.acc = False
-        self.stop_threads = False
         # threading.Thread(target=self.gui_loop).start()
         self.receiver_thread = threading.Thread(target=self.receiver)
 
     def receiver(self):
-        while not self.stop_threads:
-            data, addr = self.sock.recvfrom(1024)
-            data = self.deserialize(data)
-            message = data['message']
-            print(message)
-            if message.startswith('Welcome'):
-                self.acc = True
-            elif message.startswith('Connection to the Message Board'):
-                self.serv = True
+        while True:
+            try:
+                data, addr = self.sock.recvfrom(1024)
+                data = self.deserialize(data)
+                message = data['message'] if data else "Error: No data received."
+                print(message)
+                if message.startswith('Welcome'):
+                    self.acc = True
+                elif message.startswith('Connection to the Message Board'):
+                    self.serv = True
+            except socket.error as err:
+                print(f'Error: {err}')
+                break
 
     def join(self, host, port):
-        connected = True
         try:
-            self.sock.settimeout(1)
             self.host = host
             self.port = port
-            self.sock.connect((host, port))
-            self.sock.settimeout(None)
-            self.sock.sendto(self.serialize({'command': 'join'}), (host, port))
-            self.receiver_thread.start() # Start receiver thread to wait for server responses
-        except TimeoutError:
-            print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
-            connected = False
+            self.sock.sendto(self.serialize({'command': 'join'}), (self.host, self.port))
+            self.receiver_thread.start()
         except socket.error as e:
             print(f'Error: {e}')
-            connected = False
         except Exception as e:
             print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
-            connected = False
-        if not connected:
-            print('Connection fuck up')
 
     def leave(self):
-        self.stop_threads = True
         self.sock.sendto(self.serialize({'command': 'leave'}), (self.host, self.port))
         self.sock.close()
+        exit(0)
 
     def register(self, handle):
         self.sock.sendto(self.serialize({'command': 'register', 'handle': handle}), (self.host, self.port))
@@ -158,36 +150,37 @@ class Client:
 
 if __name__ == '__main__':
     client = Client()
-    print('The program has started, you may now type your commands!')
+    print('Use /? for the list of commands')
     while True:
         cmd = input()
-        if cmd.startswith('/join'):
-            cmd = cmd.split()
-            if len(cmd) == 3:
-                client.join(cmd[1], int(cmd[2]))
+        cmd, *args = cmd.split(' ')
+        if cmd == '/?':
+            if args: print('Error: Command parameters do not match or is not allowed.')
+            else: print(COMMANDS)
+        elif cmd == '/join':
+            if len(args) == 2:
+                client.join(args[0], int(args[1]))
             else:
                 print('Error: Command parameters do not match or is not allowed.')
-        elif cmd.startswith('/leave'):
-            client.leave()
-        elif cmd.startswith('/register'):
-            cmd = cmd.split()
-            if len(cmd) == 2:
-                client.register(cmd[1])
+        elif cmd == '/leave':
+            if args:
+                print('Error: Command parameters do not match or is not allowed.')
+            else:
+                client.leave()  
+        elif cmd == '/register':
+            if len(args) == 1:
+                client.register(args[0])
             else:
                 print('Error: Command parameters do not match or is not allowed.')
-        elif cmd.startswith('/msg'):
-            cmd = cmd.split()
-            if len(cmd) >= 3:
-                client.msg(cmd[1], ' '.join(cmd[2:]))
+        elif cmd == '/msg':
+            if len(args) >= 2:
+                client.msg(args[0], ' '.join(args[1:]))
             else:
                 print('Error: Command parameters do not match or is not allowed.')
-        elif cmd.startswith('/all'):
-            cmd = cmd.split()
-            if len(cmd) >= 2:
-                client.msg_all(' '.join(cmd[1:]))
+        elif cmd == '/all':
+            if args:
+                client.msg_all(' '.join(args[:]))
             else:
                 print('Error: Command parameters do not match or is not allowed.')
-        elif cmd == '/help':
-            print(COMMANDS)
         else:
             print('Error: Command not found.')
