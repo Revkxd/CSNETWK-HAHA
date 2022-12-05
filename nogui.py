@@ -8,42 +8,60 @@ COMMANDS = '\n'.join(['/join <server_ip_add> <port>', '/leave', '/register <hand
 class Client:
     def __init__(self) -> None:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.handle = None
         self.host = None
         self.port = None
-
+        self.serv = False
+        self.acc = False
+        self.stop_threads = False
         # threading.Thread(target=self.gui_loop).start()
+        self.receiver_thread = threading.Thread(target=self.receiver)
 
     def receiver(self):
-        while True:
+        while not self.stop_threads:
             data, addr = self.sock.recvfrom(1024)
             data = self.deserialize(data)
             message = data['message']
             print(message)
+            if message.startswith('Welcome'):
+                self.acc = True
+            elif message.startswith('Connection to the Message Board'):
+                self.serv = True
 
     def join(self, host, port):
+        connected = True
         try:
-            self.sock.connect((host, port))
-            self.sock.sendto(self.serialize({'command': 'join'}), (host, port))
+            self.sock.settimeout(1)
             self.host = host
             self.port = port
-            threading.Thread(target=self.receiver).start() # Start receiver thread to wait for server responses
+            self.sock.connect((host, port))
+            self.sock.settimeout(None)
+            self.sock.sendto(self.serialize({'command': 'join'}), (host, port))
+            self.receiver_thread.start() # Start receiver thread to wait for server responses
+        except TimeoutError:
+            print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
+            connected = False
         except socket.error as e:
-            print(e)
+            print(f'Error: {e}')
+            connected = False
+        except Exception as e:
+            print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
+            connected = False
+        if not connected:
+            print('Connection fuck up')
 
     def leave(self):
+        self.stop_threads = True
         self.sock.sendto(self.serialize({'command': 'leave'}), (self.host, self.port))
         self.sock.close()
 
     def register(self, handle):
         self.sock.sendto(self.serialize({'command': 'register', 'handle': handle}), (self.host, self.port))
-        self.handle = handle
 
     def msg(self, recipient, message):
         self.sock.sendto(self.serialize({'command': 'msg', 'recipient': recipient, 'message': message}), (self.host, self.port))
 
     def msg_all(self, message):
-        self.sock.sendto(self.serialize({'command': 'all', 'sender': self.handle, 'message': message}), (self.host, self.port))
+        self.sock.sendto(self.serialize({'command': 'all', 'message': message}), (self.host, self.port))
     
     def serialize(self, dict):
         val = bytes(json.dumps(dict), 'utf-8')
@@ -69,75 +87,6 @@ class Client:
                 self.text_area.insert('end', '\n'.join(COMMANDS) + '\n')
                 self.text_area.yview('end')
                 self.text_area.configure(state='disabled')
-        elif cmd == '/join':
-            if len(args) != 2: 
-                # print(params_err)
-                self.text_area.configure(state='normal')
-                self.text_area.insert('end', params_err + '\n')
-                self.text_area.yview('end')
-                self.text_area.configure(state='disabled')
-                return False
-            elif not self.handle:
-                if args[1] == ' ': args[1] = '0'
-                self.join(args[0], int(args[1]))
-                ans = self.request(self.serialize({'command': 'join'}))
-                # print(ans.get('message'))
-                self.text_area.configure(state='normal')
-                self.text_area.insert('end', ans.get('message') + '\n')
-                self.text_area.yview('end')
-                self.text_area.configure(state='disabled')
-                return True if ans.get('message') == 'Connection to the Message Board Server is successful.' else False
-            else:
-                # print("You're already connected")
-                self.text_area.configure(state='normal')
-                self.text_area.insert('end', "You're already connected\n")
-                self.text_area.yview('end')
-                self.text_area.configure(state='disabled')
-                return False
-        elif cmd == '/leave':
-            if args: 
-                # print(params_err)
-                self.text_area.configure(state='normal')
-                self.text_area.insert('end', params_err + '\n')
-                self.text_area.yview('end')
-                self.text_area.configure(state='disabled')
-                return False
-            else: 
-                ans = self.request(self.serialize({'command': 'leave'}))
-                # print(ans.get('message'))
-                self.text_area.configure(state='normal')
-                self.text_area.insert('end', ans.get('message') + '\n')
-                self.text_area.yview('end')
-                self.text_area.configure(state='disabled')
-                return True if ans.get('message') == 'Connection closed. Thank you!' else False
-        elif cmd == '/register':
-            if len(args) != 1: 
-                # print(params_err)
-                self.text_area.configure(state='normal')
-                self.text_area.insert('end', params_err + '\n')
-                self.text_area.yview('end')
-                self.text_area.configure(state='disabled')
-                return False
-            else: 
-                ans = self.register(args[0])
-                # print(ans.get('message'))
-                self.text_area.configure(state='normal')
-                self.text_area.insert('end', ans.get('message') + '\n')
-                self.text_area.yview('end')
-                self.text_area.configure(state='disabled')
-                return True if ans.get('message') == f'Welcome {args[0]}!' else False
-        elif cmd == '/all':
-            # print(self.msg_all(self.handle, ' '.join(args)))
-            self.text_area.configure(state='normal')
-            self.text_area.insert('end', self.msg_all(self.handle, ' '.join(args)).get('message') + '\n')
-            self.text_area.yview('end')
-            self.text_area.configure(state='disabled')
-        elif cmd == '/msg':
-            # print(self.msg(args[0], ' '.join(args[1:])))
-            self.text_area.configure(state='normal')
-            self.text_area.insert('end', self.msg(args[0], ' '.join(args[1:])) + '\n')
-            self.text_area.yview('end')
-            self.text_area.configure(state='disabled')
         else:
             # print('Error: Command not found.')
             self.text_area.configure(state='normal')
@@ -155,25 +104,23 @@ class Client:
             elif cmd.startswith('/join') and not self.serv:
                 try:
                     yes = self.read_cmd(cmd)
-                    if yes: 
-                        self.serv = True
+                    if yes: self.serv = True
                 except socket.error:
                     print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
             elif cmd.startswith('/leave') and self.serv:
                 yes = self.read_cmd(cmd)
                 if yes: 
                     self.serv = False
-                    self.handle= None
+                    self.acc = False
             else:
                 if not self.acc and not cmd.startswith('/register'):
                     print('Error: You must register a handle first.')
                 else:
                     self.read_cmd(cmd)
-                    if self.handle: self.acc = True
         except socket.error as err:
             print(f'Error: {err}')
         finally:
-            self.input_area.delete('1.0', 'end')
+            self.input_area.delete('1.0', 'end') # Clear the input box
 
     def exit_window(self):
         self.win.destroy()
@@ -211,6 +158,7 @@ class Client:
 
 if __name__ == '__main__':
     client = Client()
+    print('The program has started, you may now type your commands!')
     while True:
         cmd = input()
         if cmd.startswith('/join'):
@@ -218,7 +166,7 @@ if __name__ == '__main__':
             if len(cmd) == 3:
                 client.join(cmd[1], int(cmd[2]))
             else:
-                print('Invalid command. Try again.')
+                print('Error: Command parameters do not match or is not allowed.')
         elif cmd.startswith('/leave'):
             client.leave()
         elif cmd.startswith('/register'):
@@ -226,20 +174,20 @@ if __name__ == '__main__':
             if len(cmd) == 2:
                 client.register(cmd[1])
             else:
-                print('Invalid command. Try again.')
+                print('Error: Command parameters do not match or is not allowed.')
         elif cmd.startswith('/msg'):
             cmd = cmd.split()
             if len(cmd) >= 3:
                 client.msg(cmd[1], ' '.join(cmd[2:]))
             else:
-                print('Invalid command. Try again.')
+                print('Error: Command parameters do not match or is not allowed.')
         elif cmd.startswith('/all'):
             cmd = cmd.split()
             if len(cmd) >= 2:
                 client.msg_all(' '.join(cmd[1:]))
             else:
-                print('Invalid command. Try again.')
+                print('Error: Command parameters do not match or is not allowed.')
         elif cmd == '/help':
             print(COMMANDS)
         else:
-            print('Invalid command. Try again.')
+            print('Error: Command not found.')

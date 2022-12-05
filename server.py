@@ -35,8 +35,8 @@ class OurServer:
         self.addresses.remove(ip_add)
         print('Users after leave:', self.users) # Debug print, remove after
         print('Addresses after leave:', self.addresses) # Debug print, remove after
-        message = {'response':'success', 'message':'Connection closed. Thank you!'}
-        return message
+        # message = {'response':'success', 'message':'Connection closed. Thank you!'}
+        # return message
 
     def register(self, username):
         if username not in self.users:
@@ -60,14 +60,14 @@ class OurServer:
         for rcvr in self.users:
             if rcvr != sender:
                 self.sock.sendto(self.serialize(send_it), self.users.get(rcvr))
-        return {'response': 'success', 'message': send_it}
+        return send_it
 
     def parse_cmd(self, req, ip_add):
         cmd = req.get('command')
         if cmd == 'join':
             return self.join()
         elif cmd == 'leave':
-            return self.leave()
+            self.leave()
         elif cmd == 'register':
             return self.register(req.get('handle'))
         elif cmd == 'msg':
@@ -78,7 +78,12 @@ class OurServer:
                     break
             return self.msg(sender, req.get('recipient'), req.get('message'))
         elif cmd == 'all':
-            return self.msgall(req.get('sender'), req.get('message'))
+            sender = None
+            for key, value in self.users.items():
+                if value == ip_add:
+                    sender = key
+                    break
+            return self.msgall(sender, req.get('message'))
         else:
             return {'response':'error', 'message':'Error: Command not found.'}
 
