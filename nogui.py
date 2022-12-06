@@ -29,18 +29,33 @@ class Client:
             except socket.error as err:
                 print(f'Error: RECEIVER{err}')
 
+    def request(self, message):
+        try:
+            self.sock.settimeout(2)
+            self.sock.sendto(message, (self.host, self.port))
+            response, ip_add = self.sock.recvfrom(1024)
+            return self.deserialize(response)
+        except socket.error:
+            return None
+
     def join(self, host, port):
         try:
             self.host = host
             self.port = port
             self.sock.connect((self.host, self.port))
-            self.sock.sendto(self.serialize({'command': 'join'}), (self.host, self.port))
-            if not self.thread_running:
-                self.receiver_thread.start()
-                self.thread_running = True
+            response = self.request(self.serialize({'command': 'join'}))
+            if response and response.get('message') == 'Connection to the Message Board Server is successful.':
+                print(response.get('message'))
+                self.serv = True
+                self.sock.settimeout(None)
+                if not self.thread_running:
+                    self.receiver_thread.start()
+                    self.thread_running = True
+            else:
+                print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
         except socket.timeout:
-            print(f'Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number. timeout')
-        except socket.error:
+            print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
+        except socket.error as e:
             print(f'Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
         except Exception as e:
             print(f'Error: {e}')
@@ -48,9 +63,15 @@ class Client:
     def leave(self):
         if self.serv:
             self.sock.sendto(self.serialize({'command': 'leave'}), (self.host, self.port))
+            self.serv = False
+            self.acc = False
+            self.thread_running = False
             self.receiver_thread.join()
             self.sock.shutdown()
             self.sock.close()
+            self.host = None
+            self.port = None
+            print(self.receiver_thread)
         else:
             print('Error: Disconnection failed. Please connect to the server first.')
 
