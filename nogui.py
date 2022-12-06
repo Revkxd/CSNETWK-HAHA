@@ -16,7 +16,7 @@ class Client:
         self.receiver_thread = threading.Thread(target=self.receiver)
 
     def receiver(self):
-        while True:
+        while  True and self.thread_running==True:
             try:
                 data, addr = self.sock.recvfrom(1024)
                 data = self.deserialize(data)
@@ -49,8 +49,8 @@ class Client:
                 self.serv = True
                 self.sock.settimeout(None)
                 if not self.thread_running:
-                    self.receiver_thread.start()
                     self.thread_running = True
+                    self.receiver_thread.start()
             else:
                 print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
         except socket.timeout:
@@ -66,12 +66,9 @@ class Client:
             self.serv = False
             self.acc = False
             self.thread_running = False
-            self.receiver_thread.join()
-            self.sock.shutdown()
-            self.sock.close()
+            self.sock.shutdown(socket.SHUT_RDWR)
             self.host = None
             self.port = None
-            print(self.receiver_thread)
         else:
             print('Error: Disconnection failed. Please connect to the server first.')
 
@@ -111,6 +108,7 @@ if __name__ == '__main__':
                 print('Error: Command parameters do not match or is not allowed.')
             else:
                 client.leave()
+                client = Client()
         elif cmd == '/register':
             if not client.serv:
                 print('Error: You must connect to the server first.')
