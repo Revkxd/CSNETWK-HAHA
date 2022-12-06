@@ -1,7 +1,6 @@
 import json
 import socket
 import threading
-from tkinter import *
 
 COMMANDS = '\n'.join(['/join <server_ip_add> <port>', '/leave', '/register <handle>', '/all <message>', '/msg <handle> <message>'])
 
@@ -58,7 +57,7 @@ class OurClient:
         except socket.error as e:
             print(f'Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
         except Exception as e:
-            print(f'Error: {e}')
+            print(f'Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
 
     def leave(self):
         if self.serv:
