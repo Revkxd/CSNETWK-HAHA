@@ -16,7 +16,7 @@ class OurServer:
             return req, ip_add
         except socket.error as err:
             print('Socket error:', err)
-            return {'command':'FAIL'}, (socket.gethostname, 12345)
+            return {'response':'error', 'message': 'Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.'}, ip_add
 
     def respond(self, message, ip_add): # Send response to client
         resp = self.serialize(self.parse_cmd(message, ip_add))
@@ -39,8 +39,8 @@ class OurServer:
         self.addresses.remove(ip_add)
         print('Users after leave:', self.users) # Debug print, remove after
         print('Addresses after leave:', self.addresses) # Debug print, remove after
-        # message = {'response':'success', 'message':'Connection closed. Thank you!'}
-        # return message
+        message = {'response':'success', 'message':'Connection closed. Thank you!'}
+        return message
 
     def register(self, username):
         if username not in self.users:
