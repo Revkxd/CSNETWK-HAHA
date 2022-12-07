@@ -15,7 +15,7 @@ class OurClient:
         self.receiver_thread = threading.Thread(target=self.receiver)
 
     def receiver(self):
-        while  True and self.thread_running==True:
+        while True and self.thread_running==True:
             try:
                 data, addr = self.sock.recvfrom(1024)
                 data = self.deserialize(data)
@@ -26,7 +26,8 @@ class OurClient:
                 elif message.startswith('Connection to the Message Board'):
                     self.serv = True
             except socket.error as err:
-                print(f'Error: RECEIVER{err}')
+                print(f'Error: Server has been closed')
+                break
 
     def request(self, message):
         try:
