@@ -98,8 +98,13 @@ if __name__ == '__main__':
             if args: print('Error: Command parameters do not match or is not allowed.')
             else: print(COMMANDS)
         elif cmd == '/join':
-            if len(args) == 2:
-                client.join(args[0], int(args[1]))
+            if client.serv:
+                print('Error: You are already connected to the server.')
+            elif len(args) == 2:
+                try:
+                    client.join(args[0], int(args[1]))
+                except ValueError:
+                    print('Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.')
             else:
                 print('Error: Command parameters do not match or is not allowed.')
         elif cmd == '/leave':
@@ -111,6 +116,8 @@ if __name__ == '__main__':
         elif cmd == '/register':
             if not client.serv:
                 print('Error: You must connect to the server first.')
+            elif client.acc:
+                print('Error: You are already registered.')
             elif len(args) == 1:
                 client.register(args[0])
             else:

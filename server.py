@@ -100,7 +100,7 @@ class OurServer:
         return val
 
 if __name__ == '__main__':
-    server = OurServer()
+    server = OurServer(host='localhost')
     print('Server running at {}:{}'.format(server.sock.getsockname()[0], server.sock.getsockname()[1])) # I want this here, off my case
     while True:
         msg, ip_add = server.wait()
