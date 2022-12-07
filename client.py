@@ -98,7 +98,9 @@ if __name__ == '__main__':
             if args: print('Error: Command parameters do not match or is not allowed.')
             else: print(COMMANDS)
         elif cmd == '/join':
-            if client.serv:
+            if not args or len(args) != 2:
+                print('Error: Command parameters do not match or is not allowed.')
+            elif client.serv:
                 print('Error: You are already connected to the server.')
             elif len(args) == 2:
                 try:
@@ -114,7 +116,9 @@ if __name__ == '__main__':
                 client.leave()
                 client = OurClient()
         elif cmd == '/register':
-            if not client.serv:
+            if not args or len(args) > 1:
+                print('Error: Command parameters do not match or is not allowed.')
+            elif not client.serv:
                 print('Error: You must connect to the server first.')
             elif client.acc:
                 print('Error: You are already registered.')
@@ -123,7 +127,9 @@ if __name__ == '__main__':
             else:
                 print('Error: Command parameters do not match or is not allowed.')
         elif cmd == '/msg':
-            if not client.serv:
+            if not args or len(args) < 2:
+                print('Error: Command parameters do not match or is not allowed.')
+            elif not client.serv:
                 print('Error: You must connect to the server first.')
             elif not client.acc:
                 print('Error: You must register a handle first.')
@@ -132,7 +138,9 @@ if __name__ == '__main__':
             else:
                 print('Error: Command parameters do not match or is not allowed.')
         elif cmd == '/all':
-            if not client.serv:
+            if not args:
+                print('Error: Command parameters do not match or is not allowed.')
+            elif not client.serv:
                 print('Error: You must connect to the server first.')
             elif not client.acc:
                 print('Error: You must register a handle first.')
