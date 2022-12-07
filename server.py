@@ -16,9 +16,9 @@ class OurServer:
             return req, ip_add
         except socket.error as err:
             print('Socket error:', err)
-            return {'response':'error', 'message': 'Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.'}, ip_add
+            return {'command':'error', 'message': 'Error: Connection to the Message Board Server has failed! Please check IP Address and Port Number.'}, ip_add
 
-    def respond(self, message, ip_add): # Send response to client
+    def respond(self, message, ip_add): # Send reply to client
         resp = self.serialize(self.parse_cmd(message, ip_add))
         self.sock.sendto(resp, ip_add)
 
@@ -26,7 +26,7 @@ class OurServer:
         if ip_add not in self.addresses:
             self.addresses.append(ip_add)
         print('Addresses after join:', self.addresses) # Debug print, remove after
-        message = {'response':'success', 'message':'Connection to the Message Board Server is successful.'}
+        message = {'command':'join', 'message':'Connection to the Message Board Server is successful.'}
         return message
     
     def leave(self):
@@ -39,28 +39,28 @@ class OurServer:
         self.addresses.remove(ip_add)
         print('Users after leave:', self.users) # Debug print, remove after
         print('Addresses after leave:', self.addresses) # Debug print, remove after
-        message = {'response':'success', 'message':'Connection closed. Thank you!'}
+        message = {'command':'leave', 'message':'Connection closed. Thank you!'}
         return message
 
     def register(self, username):
         if username not in self.users:
             self.users.update({username: ip_add})
             print('Users after register:', self.users) # Debug print, remove after
-            return {'response':'success', 'message': f'Welcome {username}!'}
+            return {'command':'register', 'message': f'Welcome {username}!'}
         else:
-            return {'response':'error', 'message':'Error: Registration failed. Handle or alias already exists.'}
+            return {'command':'error', 'message':'Error: Registration failed. Handle or alias already exists.'}
 
     def msg(self, sender, recipient, message):
         rcvr = self.users.get(recipient)
         if rcvr:
-            send_it = {'response': 'message', 'message': f'[From {sender}]: {message}'}
+            send_it = {'command': 'message', 'message': f'[From {sender}]: {message}'}
             self.sock.sendto(self.serialize(send_it), rcvr)
-            return {'response': 'success', 'message': f'[To {recipient}]: {message}'}
+            return {'command': 'msg', 'message': f'[To {recipient}]: {message}'}
         else:
-            return {'response': 'error', 'message':'Error: Handle or alias not found.'}
+            return {'command': 'error', 'message':'Error: Handle or alias not found.'}
 
     def msgall(self, sender, message):
-        send_it = {'response': 'message', 'message': f'{sender}: {message}'}
+        send_it = {'command': 'all', 'message': f'{sender}: {message}'}
         for rcvr in self.users:
             if rcvr != sender:
                 self.sock.sendto(self.serialize(send_it), self.users.get(rcvr))
@@ -80,7 +80,7 @@ class OurServer:
                 if value == ip_add:
                     sender = key
                     break
-            return self.msg(sender, req.get('recipient'), req.get('message'))
+            return self.msg(sender, req.get('handle'), req.get('message'))
         elif cmd == 'all':
             sender = None
             for key, value in self.users.items():
@@ -89,7 +89,7 @@ class OurServer:
                     break
             return self.msgall(sender, req.get('message'))
         else:
-            return {'response':'error', 'message':'Error: Command not found.'}
+            return {'command':'error', 'message':'Error: Command not found.'}
 
     def serialize(self, dict): # Turns JSON into bytes
         val = bytes(json.dumps(dict), 'utf-8')

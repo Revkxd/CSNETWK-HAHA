@@ -44,8 +44,8 @@ class OurClient:
             self.port = port
             self.sock.connect((self.host, self.port))
             response = self.request(self.serialize({'command': 'join'}))
-            if response and response.get('message') == 'Connection to the Message Board Server is successful.':
-                print(response.get('message'))
+            if response and response['command'] == 'join':
+                print('Connection to the Message Board Server is successful!')
                 self.serv = True
                 self.sock.settimeout(None)
                 if not self.thread_running:
@@ -75,8 +75,8 @@ class OurClient:
     def register(self, handle):
         self.sock.sendto(self.serialize({'command': 'register', 'handle': handle}), (self.host, self.port))
 
-    def msg(self, recipient, message):
-        self.sock.sendto(self.serialize({'command': 'msg', 'recipient': recipient, 'message': message}), (self.host, self.port))
+    def msg(self, handle, message):
+        self.sock.sendto(self.serialize({'command': 'msg', 'handle': handle, 'message': message}), (self.host, self.port))
 
     def msg_all(self, message):
         self.sock.sendto(self.serialize({'command': 'all', 'message': message}), (self.host, self.port))
